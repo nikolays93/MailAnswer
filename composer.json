@@ -8,5 +8,10 @@
             "name": "NikolayS93",
             "email": "nikolays93@ya.ru"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-4": {
+            "NikolayS93\\Mailer\\": "ajax"
+        }
+    }
 }
