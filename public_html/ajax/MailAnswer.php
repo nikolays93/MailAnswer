@@ -74,8 +74,13 @@ class MailAnswer extends PHPMailer
         foreach ($this->fields as $field => $sanitizeCallback)
         {
             $value = '';
-            if( $sanitizeCallback && !empty($_POST[ $field ]) ) {
-                $value = call_user_func_array($sanitizeCallback, array($field, $this->fieldNames[ $field ]));
+            if( !empty($_POST[ $field ]) ) {
+                if( $sanitizeCallback ) {
+                    $value = call_user_func_array($sanitizeCallback, array($field, $this->fieldNames[ $field ]));
+                }
+                else {
+                    $value = static::sanitize_post_data($field);
+                }
             }
 
             $values[ $field ] = $value;
@@ -88,6 +93,11 @@ class MailAnswer extends PHPMailer
         }
 
         return $values;
+    }
+
+    public function getFieldNames()
+    {
+        return $this->fieldNames;
     }
 
     /**
@@ -139,8 +149,6 @@ class MailAnswer extends PHPMailer
             $result .= '<div class="messages">' . implode('', array_map(array(__CLASS__, 'autop'), $this->errors)) . '</div>';
         }
 
-        $result = static::autop( $result, $this->status );
-
         if( static::$is_json ) {
             echo json_encode(
                 array(
@@ -162,6 +170,7 @@ class MailAnswer extends PHPMailer
 
     static function autop( $str, $class = '' )
     {
+        $attributes = '';
         if( $class ) {
             $attributes = ' class="'. $class .'"';
         }

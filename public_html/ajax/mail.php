@@ -10,21 +10,21 @@ $is_spam = !empty($_POST["surname"]);
 if( $is_spam ) { header($_SERVER['SERVER_PROTOCOL'] . ' 403 Forbidden', true, 403); die(); }
 
 $mail = new MailAnswer();
-$mail->fromName = 'TestMessage';
+$mail->fromName = 'TestName';
 
 // to
 $mail->addAddress('nikolays93@ya.ru');
 
-$mail->addField( 'addit' );
+$mail->addField( 'test-name', 'Тестовое имя' );
 $mail->setRequired('phone');
 
-extract( $mail->getFields() );
+$fields = $mail->getFields();
+$fieldNames = $mail->getFieldNames();
 
-if( $name )  $mail->Body.= "Имя отправителя: $name\r\n";
-if( $email ) $mail->Body.= "Электронный адрес отправителя: $email\r\n";
-if( $phone ) $mail->Body.= "Телефон отправителя: $phone\r\n";
-if( $addit ) $mail->Body.= "Дополнительный текст: $addit\r\n";
-if( $text )  $mail->Body.= "Текст сообщения:\r\n $text\r\n";
+foreach ($fields as $key => $value)
+{
+    if( $value ) $mail->Body.= $fieldNames[$key] . ": $value\r\n";
+}
 
 if( $mail->Body ) {
     $mail->Body.= "\r\n";
