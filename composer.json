@@ -11,7 +11,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "NikolayS93\\Mailer\\": "ajax"
+            "NikolayS93\\Mailer\\": "public_html/ajax"
         }
     }
 }

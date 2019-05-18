@@ -13,11 +13,12 @@ $mail = new MailAnswer();
 $mail->fromName = 'TestMessage';
 
 // to
-$mail->addAddress('');
+$mail->addAddress('nikolays93@ya.ru');
 
 $mail->addField( 'addit' );
-$r = $mail->getFields();
-extract( $r );
+$mail->setRequired('phone');
+
+extract( $mail->getFields() );
 
 if( $name )  $mail->Body.= "Имя отправителя: $name\r\n";
 if( $email ) $mail->Body.= "Электронный адрес отправителя: $email\r\n";
