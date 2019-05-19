@@ -1,17 +1,13 @@
 {
-    "name": "nickolays93/project",
-    "require": {
-        "phpmailer/phpmailer": "^6.0"
-    },
+    "name": "NikolayS93/PHPMailInterface",
+    "description": "Interface addon for php mailer",
     "authors": [
         {
             "name": "NikolayS93",
-            "email": "nikolays93@ya.ru"
+            "email": "NikolayS93@ya.ru"
         }
     ],
-    "autoload": {
-        "psr-4": {
-            "NikolayS93\\Mailer\\": "public_html/ajax"
-        }
+    "require": {
+        "phpmailer/phpmailer": "^6.0"
     }
 }

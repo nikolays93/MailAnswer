@@ -1,36 +1,61 @@
 <?php
 
-namespace NikolayS93\Mailer;
+namespace NikolayS93;
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-if( !class_exists('MailAnswer') ) {
-class MailAnswer extends PHPMailer
+$_GLOBALS['MAILIO_MEET_DEV'] = 'Обратитесь к администратору сайта.';
+$_GLOBALS['MAILIO_VARIABLE_NOT_CALLABLE'] = 'Объявлен не существующий метод проверки полей. ' . $_GLOBALS['MAILIO_MEET_DEV'];
+$_GLOBALS['MAILIO_REQ_FIELDS_NOT_EXISTS'] = 'Не верно заданы обязательные поля. Обратитесь к администратору сайта.';
+$_GLOBALS['MAILIO_FIELD_REQUIRED'] = 'Поле %s обязательно к заполнению.';
+$_GLOBALS['MAILIO_NOT_SENT'] = 'Ошибка, заявка не отправлена!';
+$_GLOBALS['MAILIO_BODY_IS_EMPTY'] = 'Попытка отправки пустого сообщения. ' . $_GLOBALS['MAILIO_MEET_DEV'];
+$_GLOBALS['MAILIO_ERR_FIELD'] = 'Не верно указано поле %s';
+$_GLOBALS['MAILIO_ERR_LESS_FIELD'] = 'Короткий %s, он должен содержать не менее 6 символов.';
+$_GLOBALS['MAILIO_ERR_MORE_FIELD'] = 'Длинный %s, он должен содержать не более 12 символов.';
+$_GLOBALS['MAILIO_ERR_MAIL_LOCAL'] = 'Не верное имя поля %s';
+$_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'] = 'Не верно указан домен поля %s';
+$_GLOBALS['MAILIO_ERR_MAIL_BIGDOMAIN'] = 'Не верно указана зона домена поля %s';
+
+
+class PHPMailInterface extends PHPMailer
 {
-    public $CharSet = 'utf-8';
-    public $Subject = 'Сообщение с сайта';
-
-    public $fromName = 'TestMessage';
-    public $fromLocal = 'no-reply';
-
-    /** @var boolean */
+    /** @var boolean set true if is_ajax request is not empty */
     static $is_json;
 
-    /** @var string */
+    /** @var string define protocol from $_SERVER */
     static $protocol;
+
+    /** @var string set CharSet for cirilic letters */
+    public $CharSet = 'utf-8';
+
+    /** @var string Mail subject */
+    public $Subject = 'Сообщение с сайта';
+
+    /** @var string User Name who sent message: TestMessage <no-reply@domain.ltd> */
+    public $fromName = 'TestMessage';
+
+    /** @var string Email name, text before @ */
+    public $fromLocal = 'no-reply';
+
+    /** @var sent status: failure | success */
+    public $status = 'success';
+
+    /** @var string */
+    public $message = 'Заявка успешно отправлена.';
+
+    /** @var array $key => $SanitizeCallback */
+    private $fields = array();
+
+    /** @var array $key => $FieldName (label) */
+    private $fieldNames = array();
+
+    /** @var array list of required filled value by $key */
+    private $requiredFields = array();
 
     /** @var array */
     public $errors = array();
-
-    public $status = 'success';
-    public $message = 'Заявка успешно отправлена.';
-
-    private $fields = array();
-
-    private $fieldNames = array();
-
-    private $requiredFields = array();
 
     function __construct( $ExcludeDefaultFields = false )
     {
@@ -38,25 +63,23 @@ class MailAnswer extends PHPMailer
         static::$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
 
         if( !$ExcludeDefaultFields ) {
-            $this->addField('name', 'Имя');
+            $this->addField('name',  'Имя');
             $this->addField('email', 'Электронный адрес', array($this, 'sanitize_email'));
             $this->addField('phone', 'Номер телефона', array($this, 'sanitize_phone'));
-            $this->addField('text', 'Текст');
+            $this->addField('text',  'Текст');
         }
 
         parent::__construct( $exceptions = true );
-        // $this->addCC('trashmailsizh@ya.ru');
-        // $this->isHTML(true);
     }
 
     public function addField( $field, $fieldname = '', $cb = '' )
     {
         if( $cb && !is_callable($cb) ) {
-            $this->addError( 'Объявлен не существующий метод проверки полей. Обратитесь к администратору сайта.' );
+            $this->addError( $_GLOBALS['MAILIO_VARIABLE_NOT_CALLABLE'] );
             $cb = '';
         }
 
-        $this->fields[ $field ] = $cb;
+        $this->fields[ $field ]     = $cb;
         $this->fieldNames[ $field ] = $fieldname;
     }
 
@@ -88,8 +111,10 @@ class MailAnswer extends PHPMailer
 
         foreach ($this->requiredFields as $field)
         {
-            if( empty($this->fields[ $field ]) ) $this->addError( 'Не верно заданы обязательные поля. Обратитесь к администратору сайта.' );
-            if( empty($_POST[ $field ]) ) $this->addError( 'Поле ' . $this->fieldNames[ $field ] . ' обязательно к заполнению.' );
+            if( empty($this->fields[ $field ]) ) $this->addError( $_GLOBALS['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
+            if( empty($_POST[ $field ]) ) {
+                $this->addError( sprintf($_GLOBALS['MAILIO_FIELD_REQUIRED'], $this->fieldNames[ $field ]) );
+            }
         }
 
         return $values;
@@ -121,13 +146,13 @@ class MailAnswer extends PHPMailer
     {
         $this->errors[] = $msg;
         $this->status = 'failure';
-        $this->message = 'Ошибка, заявка не отправлена!';
+        $this->message = $_GLOBALS['MAILIO_NOT_SENT'];
     }
 
     public function sendMail()
     {
         if( !$this->getErrors() && empty($this->Body) ) {
-            $this->addError( 'Попытка отправки пустого сообщения, обратитесь к администратору.' );
+            $this->addError( $_GLOBALS['MAILIO_BODY_IS_EMPTY'] );
         }
 
         try {
@@ -137,7 +162,7 @@ class MailAnswer extends PHPMailer
             }
         }
         catch (Exception $e) {
-            $this->addError( "Ошибка сервера: {$this->ErrorInfo}, обратитесь к администратору.", true );
+            $this->addError( "Ошибка сервера: <pre>{$this->ErrorInfo}</pre>." . $_GLOBALS['MAILIO_MEET_DEV'] );
         }
     }
 
@@ -213,12 +238,12 @@ class MailAnswer extends PHPMailer
 
         // Test for the minimum length the email can be
         if ( strlen( $email ) < 6 ) {
-            $this->addError( "Короткий $fieldname, он должен содержать не менее 6 символов." );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_LESS_FIELD'], $fieldname) );
         }
 
         // Test for an @ character after the first position
         if ( strpos( $email, '@', 1 ) === false ) {
-            $this->addError( "Не верно указан $fieldname" );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_FIELD'], $fieldname) );
         }
 
         // Split out the local and domain parts
@@ -228,20 +253,20 @@ class MailAnswer extends PHPMailer
         // Test for invalid characters
         $local = preg_replace( '/[^a-zA-Z0-9!#$%&\'*+\/=?^_`{|}~\.-]/', '', $local );
         if ( '' === $local ) {
-            $this->addError( "Не верное имя поля $fieldname" );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_LOCAL'], $fieldname) );
         }
 
         // DOMAIN PART
         // Test for sequences of periods
         $domain = preg_replace( '/\.{2,}/', '', $domain );
         if ( '' === $domain ) {
-            $this->addError( "Не верно введен домен поля $fieldname" );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
         }
 
         // Test for leading and trailing periods and whitespace
         $domain = trim( $domain, " \t\n\r\0\x0B." );
         if ( '' === $domain ) {
-            $this->addError( "Не верно введен домен поля $fieldname" );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
         }
 
         // Split the domain into subs
@@ -249,7 +274,7 @@ class MailAnswer extends PHPMailer
 
         // Assume the domain will have at least two subs
         if ( 2 > count( $subs ) ) {
-            $this->addError( "Не верно указана зона домена поля $fieldname" );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_BIGDOMAIN'], $fieldname) );
         }
 
         // Create an array that will contain valid subs
@@ -271,7 +296,7 @@ class MailAnswer extends PHPMailer
 
         // If there aren't 2 or more valid subs
         if ( 2 > count( $new_subs ) ) {
-            $this->addError( "Не верно указан домен поля $fieldname" );
+            $this->addError( $_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'] );
         }
 
         // Join valid subs into the new domain
@@ -290,11 +315,11 @@ class MailAnswer extends PHPMailer
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if( strlen( $phone ) < 6 ) {
-            $this->addError( "Короткий $fieldname, он должен содержать не менее 6 символов." );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_LESS_FIELD'], $fieldname) );
         }
 
         if( strlen( $phone ) > 12 ) {
-            $this->addError( "Длинный $fieldname, он должен содержать не более 12 символов." );
+            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MORE_FIELD'], $fieldname) );
         }
 
         if( 0 === strpos($phone, '7') ) {
@@ -303,5 +328,4 @@ class MailAnswer extends PHPMailer
 
         return $phone;
     }
-}
 }
