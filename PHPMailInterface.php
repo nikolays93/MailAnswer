@@ -5,19 +5,24 @@ namespace NikolayS93;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-$_GLOBALS['MAILIO_MEET_DEV'] = 'Обратитесь к администратору сайта.';
-$_GLOBALS['MAILIO_VARIABLE_NOT_CALLABLE'] = 'Объявлен не существующий метод проверки полей. ' . $_GLOBALS['MAILIO_MEET_DEV'];
-$_GLOBALS['MAILIO_REQ_FIELDS_NOT_EXISTS'] = 'Не верно заданы обязательные поля. Обратитесь к администратору сайта.';
-$_GLOBALS['MAILIO_FIELD_REQUIRED'] = 'Поле %s обязательно к заполнению.';
-$_GLOBALS['MAILIO_NOT_SENT'] = 'Ошибка, заявка не отправлена!';
-$_GLOBALS['MAILIO_BODY_IS_EMPTY'] = 'Попытка отправки пустого сообщения. ' . $_GLOBALS['MAILIO_MEET_DEV'];
-$_GLOBALS['MAILIO_ERR_FIELD'] = 'Не верно указано поле %s';
-$_GLOBALS['MAILIO_ERR_LESS_FIELD'] = 'Короткий %s, он должен содержать не менее 6 символов.';
-$_GLOBALS['MAILIO_ERR_MORE_FIELD'] = 'Длинный %s, он должен содержать не более 12 символов.';
-$_GLOBALS['MAILIO_ERR_MAIL_LOCAL'] = 'Не верное имя поля %s';
-$_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'] = 'Не верно указан домен поля %s';
-$_GLOBALS['MAILIO_ERR_MAIL_BIGDOMAIN'] = 'Не верно указана зона домена поля %s';
+global $i18n;
 
+$i18n = array(
+    'RU' => array(
+        'MAILIO_MEET_DEV' => 'Обратитесь к администратору сайта.',
+        'MAILIO_VARIABLE_NOT_CALLABLE' => 'Объявлен не существующий метод проверки полей. Обратитесь к администратору сайта.',
+        'MAILIO_REQ_FIELDS_NOT_EXISTS' => 'Не верно заданы обязательные поля. Обратитесь к администратору сайта.',
+        'MAILIO_FIELD_REQUIRED' => 'Поле %s обязательно к заполнению.',
+        'MAILIO_NOT_SENT' => 'Ошибка, заявка не отправлена!',
+        'MAILIO_BODY_IS_EMPTY' => 'Попытка отправки пустого сообщения. Обратитесь к администратору сайта.',
+        'MAILIO_ERR_FIELD' => 'Не верно указано поле %s',
+        'MAILIO_ERR_LESS_FIELD' => 'Короткий %s, он должен содержать не менее 6 символов.',
+        'MAILIO_ERR_MORE_FIELD' => 'Длинный %s, он должен содержать не более 12 символов.',
+        'MAILIO_ERR_MAIL_LOCAL' => 'Не верное имя поля %s',
+        'MAILIO_ERR_MAIL_DOMAIN' => 'Не верно указан домен поля %s',
+        'MAILIO_ERR_MAIL_BIGDOMAIN' => 'Не верно указана зона домена поля %s',
+    ),
+);
 
 class PHPMailInterface extends PHPMailer
 {
@@ -74,8 +79,10 @@ class PHPMailInterface extends PHPMailer
 
     public function addField( $field, $fieldname = '', $cb = '' )
     {
+        global $i18n;
+
         if( $cb && !is_callable($cb) ) {
-            $this->addError( $_GLOBALS['MAILIO_VARIABLE_NOT_CALLABLE'] );
+            $this->addError( $i18n['RU']['MAILIO_VARIABLE_NOT_CALLABLE'] );
             $cb = '';
         }
 
@@ -92,6 +99,8 @@ class PHPMailInterface extends PHPMailer
 
     public function getFields()
     {
+        global $i18n;
+
         $values = array();
 
         foreach ($this->fields as $field => $sanitizeCallback)
@@ -111,9 +120,9 @@ class PHPMailInterface extends PHPMailer
 
         foreach ($this->requiredFields as $field)
         {
-            if( empty($this->fields[ $field ]) ) $this->addError( $_GLOBALS['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
+            if( empty($this->fields[ $field ]) ) $this->addError( $i18n['RU']['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
             if( empty($_POST[ $field ]) ) {
-                $this->addError( sprintf($_GLOBALS['MAILIO_FIELD_REQUIRED'], $this->fieldNames[ $field ]) );
+                $this->addError( sprintf($i18n['RU']['MAILIO_FIELD_REQUIRED'], $this->fieldNames[ $field ]) );
             }
         }
 
@@ -144,15 +153,19 @@ class PHPMailInterface extends PHPMailer
      */
     public function addError( $msg )
     {
+        global $i18n;
+
         $this->errors[] = $msg;
         $this->status = 'failure';
-        $this->message = $_GLOBALS['MAILIO_NOT_SENT'];
+        $this->message = $i18n['RU']['MAILIO_NOT_SENT'];
     }
 
     public function sendMail()
     {
+        global $i18n;
+
         if( !$this->getErrors() && empty($this->Body) ) {
-            $this->addError( $_GLOBALS['MAILIO_BODY_IS_EMPTY'] );
+            $this->addError( $i18n['RU']['MAILIO_BODY_IS_EMPTY'] );
         }
 
         try {
@@ -162,7 +175,7 @@ class PHPMailInterface extends PHPMailer
             }
         }
         catch (Exception $e) {
-            $this->addError( "Ошибка сервера: <pre>{$this->ErrorInfo}</pre>." . $_GLOBALS['MAILIO_MEET_DEV'] );
+            $this->addError( "Ошибка сервера: <pre>{$this->ErrorInfo}</pre>." . $i18n['RU']['MAILIO_MEET_DEV'] );
         }
     }
 
@@ -234,16 +247,18 @@ class PHPMailInterface extends PHPMailer
      */
     function sanitize_email( $email, $fieldname = 'e-mail' )
     {
+        global $i18n;
+
         $email = static::sanitize_post_data( $email );
 
         // Test for the minimum length the email can be
         if ( strlen( $email ) < 6 ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_LESS_FIELD'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_LESS_FIELD'], $fieldname) );
         }
 
         // Test for an @ character after the first position
         if ( strpos( $email, '@', 1 ) === false ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_FIELD'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
         }
 
         // Split out the local and domain parts
@@ -253,20 +268,20 @@ class PHPMailInterface extends PHPMailer
         // Test for invalid characters
         $local = preg_replace( '/[^a-zA-Z0-9!#$%&\'*+\/=?^_`{|}~\.-]/', '', $local );
         if ( '' === $local ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_LOCAL'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_LOCAL'], $fieldname) );
         }
 
         // DOMAIN PART
         // Test for sequences of periods
         $domain = preg_replace( '/\.{2,}/', '', $domain );
         if ( '' === $domain ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
         }
 
         // Test for leading and trailing periods and whitespace
         $domain = trim( $domain, " \t\n\r\0\x0B." );
         if ( '' === $domain ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
         }
 
         // Split the domain into subs
@@ -274,7 +289,7 @@ class PHPMailInterface extends PHPMailer
 
         // Assume the domain will have at least two subs
         if ( 2 > count( $subs ) ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MAIL_BIGDOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_BIGDOMAIN'], $fieldname) );
         }
 
         // Create an array that will contain valid subs
@@ -296,7 +311,7 @@ class PHPMailInterface extends PHPMailer
 
         // If there aren't 2 or more valid subs
         if ( 2 > count( $new_subs ) ) {
-            $this->addError( $_GLOBALS['MAILIO_ERR_MAIL_DOMAIN'] );
+            $this->addError( $i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'] );
         }
 
         // Join valid subs into the new domain
@@ -311,15 +326,17 @@ class PHPMailInterface extends PHPMailer
 
     function sanitize_phone( $phone, $fieldname = 'номер телефона' )
     {
+        global $i18n;
+
         $phone = static::sanitize_post_data( $phone );
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if( strlen( $phone ) < 6 ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_LESS_FIELD'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_LESS_FIELD'], $fieldname) );
         }
 
         if( strlen( $phone ) > 12 ) {
-            $this->addError( sprintf($_GLOBALS['MAILIO_ERR_MORE_FIELD'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MORE_FIELD'], $fieldname) );
         }
 
         if( 0 === strpos($phone, '7') ) {
