@@ -62,16 +62,15 @@ class PHPMailInterface extends PHPMailer
     /** @var array */
     public $errors = array();
 
-    function __construct( $ExcludeDefaultFields = false )
+    function __construct( $IncludeDefaultFields = false )
     {
         static::$is_json = isset($_REQUEST["is_ajax"]) ? 'false' !== $_REQUEST["is_ajax"] : false;
         static::$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
 
-        if( !$ExcludeDefaultFields ) {
-            $this->addField('name',  'Имя');
-            $this->addField('email', 'Электронный адрес', array($this, 'sanitize_email'));
-            $this->addField('phone', 'Номер телефона', array($this, 'sanitize_phone'));
-            $this->addField('text',  'Текст');
+        if( !$IncludeDefaultFields ) {
+            $this->addField('your-name',  'Имя');
+            $this->addField('your-email', 'Электронный адрес', array($this, 'sanitize_email'));
+            $this->addField('your-phone', 'Номер телефона', array($this, 'sanitize_phone'));
         }
 
         parent::__construct( $exceptions = true );
