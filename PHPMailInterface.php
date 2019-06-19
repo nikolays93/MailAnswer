@@ -12,10 +12,10 @@ $i18n = array(
         'MAILIO_MEET_DEV' => 'Обратитесь к администратору сайта.',
         'MAILIO_VARIABLE_NOT_CALLABLE' => 'Объявлен не существующий метод проверки полей. Обратитесь к администратору сайта.',
         'MAILIO_REQ_FIELDS_NOT_EXISTS' => 'Не верно заданы обязательные поля. Обратитесь к администратору сайта.',
-        'MAILIO_FIELD_REQUIRED' => 'Поле %s обязательно к заполнению.',
+        'MAILIO_FIELD_REQUIRED' => 'Поле "%s" обязательно к заполнению.',
         'MAILIO_NOT_SENT' => 'Ошибка, заявка не отправлена!',
         'MAILIO_BODY_IS_EMPTY' => 'Попытка отправки пустого сообщения. Обратитесь к администратору сайта.',
-        'MAILIO_ERR_FIELD' => 'Не верно указано поле %s',
+        'MAILIO_ERR_FIELD' => 'Не верно указано поле "%s"',
         'MAILIO_ERR_LESS_FIELD' => 'Короткий %s, он должен содержать не менее 6 символов.',
         'MAILIO_ERR_MORE_FIELD' => 'Длинный %s, он должен содержать не более 12 символов.',
         'MAILIO_ERR_MAIL_LOCAL' => 'Не верное имя поля %s',
@@ -152,9 +152,15 @@ class PHPMailInterface extends PHPMailer
 
     public function setRequired( $required )
     {
-        if( is_string($required) ) $required = array($required);
-
-        $this->requiredFields = (array) $required;
+        if( is_array($required) ) {
+            foreach ($required as $requiredName)
+            {
+                $this->requiredFields[] = $requiredName;
+            }
+        }
+        else {
+            $this->requiredFields[] = $required;
+        }
     }
 
     public function getFields()
