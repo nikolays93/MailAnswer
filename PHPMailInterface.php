@@ -62,12 +62,33 @@ class PHPMailInterface extends PHPMailer
     /** @var array */
     public $errors = array();
 
-    function __construct( $IncludeDefaultFields = false )
+    /** @var static The stored singleton instance */
+    protected static $instance;
+
+    /**
+     * Creates the original or retrieves the stored singleton instance
+     * @return static
+     */
+    public static function getInstance()
+    {
+        if (!static::$instance) {
+            static::$instance = (new \ReflectionClass(get_called_class()))
+                ->newInstanceWithoutConstructor();
+            call_user_func_array([static::$instance, "__init"], func_get_args());
+        }
+
+        return static::$instance;
+    }
+
+    /**
+     * Init Singleton function
+     */
+    protected function __init ( $IncludeDefaultFields = false )
     {
         static::$is_json = isset($_REQUEST["is_ajax"]) ? 'false' !== $_REQUEST["is_ajax"] : false;
         static::$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
 
-        if( !$IncludeDefaultFields ) {
+        if( $IncludeDefaultFields ) {
             $this->addField('your-name',  'Имя');
             $this->addField('your-email', 'Электронный адрес', array($this, 'sanitize_email'));
             $this->addField('your-phone', 'Номер телефона', array($this, 'sanitize_phone'));
@@ -76,16 +97,56 @@ class PHPMailInterface extends PHPMailer
         parent::__construct( $exceptions = true );
     }
 
-    public function addField( $field, $fieldname = '', $cb = '' )
+    /**
+     * The constructor is disabled
+     *
+     * @throws \RuntimeException if called
+     */
+    public function __construct()
+    {
+        throw new \RuntimeException('You may not explicitly instantiate this object, because it is a singleton.');
+    }
+
+    /**
+     * Cloning is disabled
+     *
+     * @throws \RuntimeException if called
+     */
+    public function __clone()
+    {
+        throw new \RuntimeException('You may not clone this object, because it is a singleton.');
+    }
+
+    /**
+     * Unserialization is disabled
+     *
+     * @throws \RuntimeException if called
+     */
+    public function __wakeup()
+    {
+        throw new \RuntimeException('You may not unserialize this object, because it is a singleton.');
+    }
+
+    /**
+     * Unserialization is disabled
+     *
+     * @param $serialized_data
+     */
+    public function unserialize($serialized_data)
+    {
+        throw new \RuntimeException('You may not unserialize this object, because it is a singleton.');
+    }
+
+    public function addField( $field, $fieldname = '', $sanitizeCallback = null )
     {
         global $i18n;
 
-        if( $cb && !is_callable($cb) ) {
+        if( $sanitizeCallback && !is_callable($sanitizeCallback) ) {
             $this->addError( $i18n['RU']['MAILIO_VARIABLE_NOT_CALLABLE'] );
-            $cb = '';
+            $sanitizeCallback = '';
         }
 
-        $this->fields[ $field ]     = $cb;
+        $this->fields[ $field ]     = $sanitizeCallback;
         $this->fieldNames[ $field ] = $fieldname;
     }
 
@@ -106,11 +167,10 @@ class PHPMailInterface extends PHPMailer
         {
             $value = '';
             if( !empty($_POST[ $field ]) ) {
+                $value = static::sanitize_post_data($field);
+
                 if( $sanitizeCallback ) {
-                    $value = call_user_func_array($sanitizeCallback, array($field, $this->fieldNames[ $field ]));
-                }
-                else {
-                    $value = static::sanitize_post_data($field);
+                    $value = call_user_func_array($sanitizeCallback, array($value, $this->fieldNames[ $field ]));
                 }
             }
 
@@ -119,7 +179,10 @@ class PHPMailInterface extends PHPMailer
 
         foreach ($this->requiredFields as $field)
         {
-            if( empty($this->fields[ $field ]) ) $this->addError( $i18n['RU']['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
+            if( empty($this->fields[ $field ]) ) {
+                $this->addError( $i18n['RU']['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
+            }
+
             if( empty($_POST[ $field ]) ) {
                 $this->addError( sprintf($i18n['RU']['MAILIO_FIELD_REQUIRED'], $this->fieldNames[ $field ]) );
             }
@@ -248,8 +311,6 @@ class PHPMailInterface extends PHPMailer
     {
         global $i18n;
 
-        $email = static::sanitize_post_data( $email );
-
         // Test for the minimum length the email can be
         if ( strlen( $email ) < 6 ) {
             $this->addError( sprintf($i18n['RU']['MAILIO_ERR_LESS_FIELD'], $fieldname) );
@@ -327,7 +388,6 @@ class PHPMailInterface extends PHPMailer
     {
         global $i18n;
 
-        $phone = static::sanitize_post_data( $phone );
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
         if( strlen( $phone ) < 6 ) {
