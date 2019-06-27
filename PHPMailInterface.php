@@ -18,9 +18,6 @@ $i18n = array(
         'MAILIO_ERR_FIELD' => 'Не верно указано поле "%s"',
         'MAILIO_ERR_LESS_FIELD' => 'Короткий %s, он должен содержать не менее 6 символов.',
         'MAILIO_ERR_MORE_FIELD' => 'Длинный %s, он должен содержать не более 12 символов.',
-        'MAILIO_ERR_MAIL_LOCAL' => 'Не верное имя поля %s',
-        'MAILIO_ERR_MAIL_DOMAIN' => 'Не верно указан домен поля %s',
-        'MAILIO_ERR_MAIL_BIGDOMAIN' => 'Не верно указана зона домена поля %s',
     ),
 );
 
@@ -137,14 +134,16 @@ class PHPMailInterface extends PHPMailer
         throw new \RuntimeException('You may not unserialize this object, because it is a singleton.');
     }
 
-    public function addField( $field, $fieldname = '', $sanitizeCallback = null )
+    public function addField( $field, $fieldname = '', $sanitizeCallback = false )
     {
         global $i18n;
 
         if( $sanitizeCallback && !is_callable($sanitizeCallback) ) {
             $this->addError( $i18n['RU']['MAILIO_VARIABLE_NOT_CALLABLE'] );
-            $sanitizeCallback = '';
+            $sanitizeCallback = false;
         }
+
+        if( !$sanitizeCallback ) $sanitizeCallback = false;
 
         $this->fields[ $field ]     = $sanitizeCallback;
         $this->fieldNames[ $field ] = $fieldname;
@@ -185,9 +184,9 @@ class PHPMailInterface extends PHPMailer
 
         foreach ($this->requiredFields as $field)
         {
-            if( empty($this->fields[ $field ]) ) {
-                $this->addError( $i18n['RU']['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
-            }
+            // if( !isset($this->fields[ $field ]) ) {
+            //     $this->addError( $i18n['RU']['MAILIO_REQ_FIELDS_NOT_EXISTS'] );
+            // }
 
             if( empty($_POST[ $field ]) ) {
                 $this->addError( sprintf($i18n['RU']['MAILIO_FIELD_REQUIRED'], $this->fieldNames[ $field ]) );
@@ -320,11 +319,13 @@ class PHPMailInterface extends PHPMailer
         // Test for the minimum length the email can be
         if ( strlen( $email ) < 6 ) {
             $this->addError( sprintf($i18n['RU']['MAILIO_ERR_LESS_FIELD'], $fieldname) );
+            return $email;
         }
 
         // Test for an @ character after the first position
         if ( strpos( $email, '@', 1 ) === false ) {
             $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
+            return $email;
         }
 
         // Split out the local and domain parts
@@ -334,20 +335,23 @@ class PHPMailInterface extends PHPMailer
         // Test for invalid characters
         $local = preg_replace( '/[^a-zA-Z0-9!#$%&\'*+\/=?^_`{|}~\.-]/', '', $local );
         if ( '' === $local ) {
-            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_LOCAL'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
+            return $email;
         }
 
         // DOMAIN PART
         // Test for sequences of periods
         $domain = preg_replace( '/\.{2,}/', '', $domain );
         if ( '' === $domain ) {
-            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
+            return $email;
         }
 
         // Test for leading and trailing periods and whitespace
         $domain = trim( $domain, " \t\n\r\0\x0B." );
         if ( '' === $domain ) {
-            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
+            return $email;
         }
 
         // Split the domain into subs
@@ -355,7 +359,8 @@ class PHPMailInterface extends PHPMailer
 
         // Assume the domain will have at least two subs
         if ( 2 > count( $subs ) ) {
-            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_MAIL_BIGDOMAIN'], $fieldname) );
+            $this->addError( sprintf($i18n['RU']['MAILIO_ERR_FIELD'], $fieldname) );
+            return $email;
         }
 
         // Create an array that will contain valid subs
@@ -377,7 +382,8 @@ class PHPMailInterface extends PHPMailer
 
         // If there aren't 2 or more valid subs
         if ( 2 > count( $new_subs ) ) {
-            $this->addError( $i18n['RU']['MAILIO_ERR_MAIL_DOMAIN'] );
+            $this->addError( $i18n['RU']['MAILIO_ERR_FIELD'] );
+            return $email;
         }
 
         // Join valid subs into the new domain
